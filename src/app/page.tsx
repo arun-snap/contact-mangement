@@ -43,20 +43,37 @@ export default function HomePage() {
         const email = person.emailAddresses?.[0]?.value;
         console.log('Name:', name);
         console.log('Email:', email);
-       
-          const { error } = await supabase.from('contacts').upsert({
-            name: name,
-            user_id: 1,
-            email: email || null,
-            phone: person.phoneNumbers?.[0]?.value || null,
-            synced_with_google: "true",
-          });
 
-          if (error) {
-            console.error('Error storing contact:', error);
-            setError(error.message);
-          }
-        
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('id')
+          .eq('email', session.user.email)
+          .single();
+
+        if (userError) {
+          setError(userError.message);
+          continue;
+        }
+
+        const userId = userData?.id;
+
+        const { error } = await supabase.from('contacts').upsert({
+          name: name,
+          user_id: userId || 1,
+          email: email || null,
+          phone: person.phoneNumbers?.[0]?.value || null,
+          synced_with_google: "true",
+        });
+
+        if (error) {
+          setError(error.message);
+        }
+
+        if (error) {
+          // console.error('Error storing contact:', error);
+          setError(error.message);
+        }
+
       }
     };
 
@@ -64,7 +81,7 @@ export default function HomePage() {
   }, [session]);
 
   if (!session) return <div className="p-4">Loading...</div>;
-  
+
 
   return (
     <div className="p-6">
@@ -78,7 +95,7 @@ export default function HomePage() {
 
       <div className="text-red-500 mb-4">Error: {error}</div>
 
-      <h2 className="text-xl font-medium">Supabase Contacts:</h2>
+      {/* <h2 className="text-xl font-medium">Supabase Contacts:</h2>
       <button
         className="bg-blue-500 text-white px-4 py-2 rounded mb-4"
         onClick={async () => {
@@ -93,7 +110,7 @@ export default function HomePage() {
         }}
       >
         View Supabase Records
-      </button>
+      </button> */}
 
       <h2 className="text-xl font-medium">Synced Google Contacts:</h2>
       <ul className="mt-4 space-y-2">

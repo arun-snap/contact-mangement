@@ -37,25 +37,24 @@ export default function HomePage() {
       const connections: Contact[] = data.connections || [];
       setContacts(connections);
 
+      const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', session.user.email)
+      .single();
+
+    if (userError) {
+      setError(userError.message);
+    }
+
+    const userId = userData?.id;
+
       // Store in Supabase
       for (const person of connections) {
         const name = person.names?.[0]?.displayName;
         const email = person.emailAddresses?.[0]?.value;
         console.log('Name:', name);
         console.log('Email:', email);
-
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('id')
-          .eq('email', session.user.email)
-          .single();
-
-        if (userError) {
-          setError(userError.message);
-          continue;
-        }
-
-        const userId = userData?.id;
 
         const { error } = await supabase.from('contacts').upsert({
           name: name,
@@ -93,7 +92,86 @@ export default function HomePage() {
         Sign Out
       </button>
 
-      <div className="text-red-500 mb-4">Error: {error}</div>
+
+      <h2 className="text-xl font-medium">Add Contact:</h2>
+      <form
+        className="mb-4"
+        onSubmit={async (e) => {
+          e.preventDefault();
+          const formData = new FormData(e.currentTarget);
+          const name = formData.get("name") as string;
+          const email = formData.get("email") as string;
+          const phone = formData.get("phone") as string;
+          const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('id')
+          .eq('email', session?.user?.email)
+          .single();
+
+      
+        const userId = userData?.id;
+
+          const { error } = await supabase.from("contacts").insert({
+            name: name,
+            email: email,
+            user_id: userId || 1,
+            phone: phone,
+            synced_with_google: "false",
+          });
+
+          if (error) {
+            setError(error.message);
+          } else {
+            alert("Contact added successfully!");
+          }
+        }}
+      >
+        <div className="mb-4">
+          <label className="block mb-2" htmlFor="name">
+            Name:
+          </label>
+          <input
+            className="border p-2 w-full"
+            type="text"
+            id="name"
+            name="name" 
+            required
+          />
+        </div>
+        <div className="mb-4">
+          <label className="block mb-2" htmlFor="email">
+            Email:
+          </label>
+          <input
+            className="border p-2 w-full"
+            type="email"
+            id="email"
+            name="email"
+            required
+          />
+        </div>
+        <div className="mb-4">
+          <label className="block mb-2" htmlFor="phone">
+            Phone:
+          </label>
+          <input
+            className="border p-2 w-full"
+            type="text"
+            id="phone"
+            name="phone"
+            required
+          />
+        </div>
+        <button
+          className="bg-blue-500 text-white px-4 py-2 rounded"
+          type="submit"
+        >
+          Add Contact
+        </button>
+      </form>
+
+      <h2 className="text-xl font-medium">Error: </h2>
+      <div className="text-red-500 mb-4">{error}</div>
 
       {/* <h2 className="text-xl font-medium">Supabase Contacts:</h2>
       <button
